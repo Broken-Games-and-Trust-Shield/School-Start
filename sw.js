@@ -1,5 +1,5 @@
-const cacheName = 'ready-set-school-v6-single-session';
-const appFiles = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon-192.svg', './icon-512.svg'];
+const cacheName = 'school-start-v18-remember-session';
+const appFiles = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -13,12 +13,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() || '' }; }
-  const title = data.title || 'Ready Set School';
+  const title = data.title || 'School Start';
   const options = {
     body: data.body || 'You have a school reminder.',
-    icon: './icon-192.svg',
-    badge: './icon-192.svg',
-    tag: data.tag || 'ready-set-school-reminder',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: data.tag || 'school-start-reminder',
     data: { url: data.url || './' }
   };
   event.waitUntil(self.registration.showNotification(title, options));
