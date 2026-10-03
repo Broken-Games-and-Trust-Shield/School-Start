@@ -1,4 +1,4 @@
-# Ready Set School — Full Code Layout
+# School Start — Full Code Layout
 
 This file is a project blueprint showing how the app is organized across files and the main responsibilities of each part.
 
@@ -6,11 +6,11 @@ This file is a project blueprint showing how the app is organized across files a
 
 - `index.html` — page structure and dialogs
 - `styles.css` — visual design and layout
-- `app.js` — app logic, state, auth, checklist, reminders, schedule management
+- `app.js` — app logic, state, auth, checklist, planner calendar, events, reminders, schedule management
 - `sw.js` — service worker for offline caching and push notifications
 - `manifest.json` — installable PWA metadata
 - `supabase-schema.sql` — PostgreSQL schema and Row Level Security policies
-- `supabase/functions/send-reminders/index.ts` — scheduled reminder worker
+- `supabase/functions/send-reminders/index.ts` — scheduled checklist and planner-event reminder worker
 
 ---
 
@@ -25,7 +25,7 @@ The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#18382f" />
-    <title>Ready Set School | Accounts + Reminders</title>
+    <title>School Start | Accounts + Reminders</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -72,7 +72,7 @@ The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs
     <dialog id="settings-dialog">...</dialog>
     <dialog id="notifications-dialog">...</dialog>
 
-    <script type="module" src="app.js?v=20260826-single-session"></script>
+    <script type="module" src="app.js?v=20261003-task-colon"></script>
   </body>
 </html>
 ```
@@ -144,7 +144,7 @@ This stylesheet defines the app’s visual identity and responsive behavior.
 
 ## 4) App logic (`app.js`)
 
-This is the heart of the application. It contains state, rendering, authentication, reminders, schedule upload, the permission-gated local planning helper, and sync logic.
+This is the heart of the application. It contains state, rendering, authentication, reminders, schedule upload, the permission-gated local planning helper, Month/Week/Day planner views, task date windows and month-week recurrence, planner events, and sync logic. Checklist items keep completion state; planner entries link back to the checklist rather than adding a second completion control.
 
 ### Core app state
 
@@ -307,7 +307,7 @@ function startReminderCheck() {
 
         notifications.unshift({
           key,
-          title: 'Ready Set School',
+          title: 'School Start',
           body: `Remember: ${item.name}`,
           time: now.toLocaleString(),
           read: false
@@ -315,7 +315,7 @@ function startReminderCheck() {
 
         saveNotifications();
         renderNotifications();
-        new Notification('Ready Set School', { body: `Remember: ${item.name}` });
+        new Notification('School Start', { body: `Remember: ${item.name}` });
       });
   };
 
@@ -368,8 +368,8 @@ The app logic is a single-client app with state stored locally and synced to Sup
 This file enables offline use and receives background push notifications.
 
 ```js
-const cacheName = 'ready-set-school-v6-single-session';
-const appFiles = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon-192.svg', './icon-512.svg'];
+const cacheName = 'school-start-v18-remember-session';
+const appFiles = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -380,12 +380,12 @@ self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() || '' }; }
 
-  const title = data.title || 'Ready Set School';
+  const title = data.title || 'School Start';
   const options = {
     body: data.body || 'You have a school reminder.',
-    icon: './icon-192.svg',
-    badge: './icon-192.svg',
-    tag: data.tag || 'ready-set-school-reminder',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: data.tag || 'school-start-reminder',
     data: { url: data.url || './' }
   };
 
@@ -460,7 +460,7 @@ Deno.serve(async () => {
         if (!item.reminderTime || item.reminderTime > currentTime || !(item.reminderDays || []).includes(day)) continue;
         try {
           await webpush.sendNotification(subscription.subscription, JSON.stringify({
-            title: 'Ready Set School',
+            title: 'School Start',
             body: `Remember: ${item.name}`
           }));
           sent += 1;
@@ -483,7 +483,7 @@ Deno.serve(async () => {
 2. `styles.css` styles the interface.
 3. `app.js` drives rendering, item management, auth, and reminder state.
 4. `sw.js` handles offline caching and push notifications.
-5. `supabase-schema.sql` stores user profiles and reminder metadata.
-6. `send-reminders/index.ts` sends reminder pushes when a scheduled time is reached.
+5. `supabase-schema.sql` stores user profiles, planner events, and reminder metadata. Apply the `planner_events` column update to existing projects to sync events.
+6. `send-reminders/index.ts` sends checklist and planner-event reminder pushes when their scheduled times arrive.
 
 This is the full project layout, even though the real browser-side logic is primarily in `app.js` plus the supporting files around it.
