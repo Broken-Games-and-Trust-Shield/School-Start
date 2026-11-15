@@ -1,4 +1,4 @@
-const cacheName = 'school-start-v18-remember-session';
+const cacheName = 'school-start-v30-task-name-parsing';
 const appFiles = ['./', './index.html', './styles.css', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
