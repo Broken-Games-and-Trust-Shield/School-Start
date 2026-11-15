@@ -32,7 +32,7 @@ Deno.serve(async () => {
       const date = `${localParts.year}-${localParts.month}-${localParts.day}`;
       const currentTime = `${localParts.hour}:${localParts.minute}`;
       for (const item of profile.items || []) {
-        if (!item.reminderTime || item.reminderTime > currentTime || !(item.reminderDays || []).includes(day) || (item.doneDates || []).includes(date) || (item.doneDays || []).includes(day)) continue;
+        if (!item.reminderTime || item.reminderTime > currentTime || !(item.reminderDays || []).includes(day) || (item.doneDates || []).includes(date)) continue;
         const reminderTime = `${item.reminderTime}:00`;
         const reminder = { user_id: profile.id, item_id: String(item.id), reminder_date: date, reminder_time: reminderTime };
         const claim = await supabaseRequest('sent_reminders', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=representation' }, body: JSON.stringify(reminder) });
