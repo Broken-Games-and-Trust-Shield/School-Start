@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#18382f" />
-    <title>School Start | Accounts + Reminders</title>
+    <title>School Start | AI Planner</title>
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
     <link rel="manifest" href="manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,6 +18,7 @@
         <div class="brand"><img class="brand-mark" src="icon-192.png" alt="" /><span>School<br /><strong>Start</strong></span></div>
         <nav class="nav-tabs" aria-label="Main navigation">
           <button class="nav-tab active" data-tab="checklist"><span>▣</span> My checklist</button>
+          <button class="nav-tab" data-tab="chat"><span>✦</span> AI planner</button>
           <button class="nav-tab" data-tab="schedule"><span>▤</span> My schedule</button>
           <button class="nav-tab" data-tab="planner"><span>▦</span> Planner</button>
         </nav>
@@ -52,15 +53,53 @@
 
           <section class="assistant-card" aria-labelledby="assistant-title">
             <div class="assistant-mark">✦</div>
-            <div class="assistant-copy"><p class="eyebrow">Your planning helper</p><h2 id="assistant-title">Ask the school helper</h2><p>Get prep advice, add a task, or set a reminder. Schedule access stays off until you allow it.</p></div>
-            <button class="outline-button" id="open-assistant" type="button">Ask helper</button>
+            <div class="assistant-copy"><p class="eyebrow">Your planning agent</p><h2 id="assistant-title">Plan with your AI</h2><p>Chat about your schedule, add tasks and events, and save what each class needs.</p></div>
+            <button class="outline-button" id="open-assistant" type="button">Open AI planner</button>
           </section>
 
-          <div class="section-heading"><div><p class="eyebrow">Your essentials</p><h2>What’s coming with you?</h2></div><button class="add-button" id="open-add">+ Add item</button></div>
+          <div class="section-heading"><div><p class="eyebrow">Your essentials</p><h2>What’s coming with you?</h2><p class="task-order-status" id="task-order-status" role="status">High priority first · hold and drag a task to reorder</p></div><button class="add-button" id="open-add">+ Add item</button></div>
           <div id="checklist-items" class="checklist-items"></div>
           <div id="empty-state" class="empty-state hidden"><span>✎</span><h3>Nothing planned for this day</h3><p>Add an item and choose the days you need it.</p></div>
 
           <section class="week-section"><div class="section-heading compact"><div><p class="eyebrow">Plan ahead</p><h2>Week at a glance</h2></div><span class="week-hint">Tap a day to view its list</span></div><div class="days" id="days"></div></section>
+        </section>
+
+        <section id="chat" class="tab-panel">
+          <header class="page-header"><div><p class="eyebrow">Your on-device planning chatbot</p><h1>AI planner.</h1><p class="subhead">Chat, ask a quick question, or get your week organized in the order that works for you.</p></div></header>
+          <div class="chat-workspace">
+            <section class="chat-panel" aria-label="Chat with your AI planner">
+              <div class="chat-context"><span class="assistant-mark" aria-hidden="true">✦</span><div><strong>School Start AI</strong><p>Uses your checklist, planner, class Key, and schedule when you allow access.</p></div></div>
+              <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+              <div class="chat-prompts" aria-label="Suggested questions">
+                <button class="prompt-button" type="button" data-prompt="What should I bring tomorrow?">Prep for tomorrow</button>
+                <button class="prompt-button" type="button" data-prompt="What should I do first this week?">Prioritize my week</button>
+                <button class="prompt-button" type="button" data-prompt="Show me the tasks I still have left this week">Show tasks left</button>
+                <button class="prompt-button" type="button" data-prompt="Sort my tasks alphabetically">Sort my tasks</button>
+                <button class="prompt-button" type="button" data-prompt="Add task: Finish my homework due Friday">Add a task</button>
+                <button class="prompt-button" type="button" data-prompt="Add event: Science fair Friday at 2 pm">Add an event</button>
+              </div>
+              <form id="chat-form" class="chat-form">
+                <label class="sr-only" for="chat-input">Message your AI planner</label>
+                <textarea id="chat-input" rows="2" maxlength="500" placeholder="Ask a question or tell me what to plan…" required></textarea>
+                <button class="add-button" type="submit">Send</button>
+              </form>
+            </section>
+            <aside class="class-key-panel" aria-labelledby="class-key-title">
+              <div><p class="eyebrow">Personal class guide</p><h2 id="class-key-title">Your class Key</h2><p>Tell me what to bring for each class. When I find that class on an upcoming schedule day, I can add the supplies to your checklist.</p></div>
+              <form id="class-key-form" class="class-key-form">
+                <label for="class-key-course">Class name</label>
+                <input id="class-key-course" type="text" maxlength="60" placeholder="e.g. Math" required />
+                <label for="class-key-supplies">What do you need?</label>
+                <textarea id="class-key-supplies" rows="3" maxlength="240" placeholder="e.g. Pencil, notebook, calculator" required></textarea>
+                <button class="add-button" id="class-key-submit" type="submit">Add to my Key</button>
+              </form>
+              <p class="class-key-hint">Separate supplies with commas. Your Key stays with your profile.</p>
+              <p id="class-key-status" class="class-key-status" role="status"></p>
+              <div id="class-key-list" class="class-key-list" aria-live="polite"></div>
+              <label class="assistant-permission class-key-permission"><input id="assistant-permission" type="checkbox" /> Let AI read my uploaded schedule</label>
+              <p class="assistant-privacy">Schedule text is searched in this browser. You can turn access off any time.</p>
+            </aside>
+          </div>
         </section>
 
         <section id="schedule" class="tab-panel">
@@ -73,24 +112,29 @@
         </section>
 
         <section id="planner" class="tab-panel">
-          <header class="page-header planner-header"><div><p class="eyebrow">Your school week, in view</p><h1>Planner.</h1><p class="subhead">Tasks from your checklist, deadlines, and events together.</p></div><div class="planner-header-actions"><button class="outline-button" id="planner-ask-helper" type="button">✦ Ask helper</button><button class="outline-button" id="add-planner-task" type="button">+ Add task</button><button class="add-button" id="add-planner-event" type="button">+ Add event</button></div></header>
+          <header class="page-header planner-header"><div><p class="eyebrow">Your school week, in view</p><h1>Planner.</h1><p class="subhead">Tasks from your checklist, deadlines, and events together.</p></div><div class="planner-header-actions"><button class="outline-button" id="planner-ask-helper" type="button">✦ Chat with AI</button><button class="outline-button" id="add-planner-task" type="button">+ Add task</button><button class="add-button" id="add-planner-event" type="button">+ Add event</button></div></header>
           <section class="planner-board" aria-label="Planner calendar">
             <div class="planner-toolbar"><button class="planner-icon-button" id="planner-previous" type="button" aria-label="Previous period">‹</button><h2 id="planner-month-label"></h2><button class="planner-icon-button" id="planner-next" type="button" aria-label="Next period">›</button><button class="text-button planner-today" id="planner-today" type="button">Today</button><div class="planner-view-switch" id="planner-view-switch" role="group" aria-label="Planner view"><button class="planner-view-button selected" type="button" data-planner-mode="month" aria-pressed="true">Month</button><button class="planner-view-button" type="button" data-planner-mode="week" aria-pressed="false">Week</button><button class="planner-view-button" type="button" data-planner-mode="day" aria-pressed="false">Day</button></div></div>
             <div class="planner-weekdays" id="planner-weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
             <div class="planner-calendar" id="planner-calendar" role="grid" aria-label="Calendar days"></div>
           </section>
-          <p id="planner-sync-note" class="planner-sync-note hidden">Planner events are saved on this browser. Apply the planner_events update in supabase-schema.sql to sync them with your account.</p>
+          <p id="planner-sync-note" class="planner-sync-note hidden">Planner events are saved on this browser and won’t sync to your other devices.</p>
           <section class="planner-agenda"><div class="section-heading compact"><div><p class="eyebrow">Selected day</p><h2 id="planner-day-title"></h2></div><button class="outline-button" id="add-planner-event-day" type="button">+ Event</button></div><div id="planner-agenda-list" class="planner-agenda-list"></div></section>
         </section>
+        <footer class="creator-footer">
+          <p class="eyebrow">More from the creator</p>
+          <a href="https://github.com/ibrokethesystem" target="_blank" rel="noopener noreferrer">Visit the creator on GitHub <span aria-hidden="true">↗</span></a>
+        </footer>
       </main>
     </div>
 
     <dialog id="item-dialog"><form method="dialog" id="item-form"><div class="dialog-header"><div><p class="eyebrow">Your essential</p><h2 id="item-dialog-title">Add to your list</h2></div><button class="close-button" type="button" id="item-close" aria-label="Close">×</button></div><label for="item-name">What do you need?</label><input id="item-name" name="item-name" type="text" placeholder="e.g. Water bottle" required maxlength="60" /><fieldset><legend>Task days</legend><div class="day-picker" id="day-picker"></div></fieldset><fieldset class="month-week-fieldset"><legend>Weeks of the month</legend><div class="month-week-picker" id="month-week-picker"></div></fieldset><div class="task-details-row"><label for="item-start-date">Starts<input id="item-start-date" type="date" /></label><label for="item-due-date">Due date<input id="item-due-date" type="date" /></label><label for="item-priority">Priority<select id="item-priority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></label></div><label class="item-notes-label" for="item-notes">Notes</label><textarea id="item-notes" maxlength="500" placeholder="Details, materials, or instructions"></textarea><div class="reminder-row"><label><input id="reminder-enabled" type="checkbox" /> Send me a notification</label><input id="reminder-time" type="time" value="18:00" aria-label="Notification time" /></div><fieldset class="reminder-days"><legend>Notify me on</legend><div class="day-picker" id="reminder-day-picker"></div></fieldset><div class="dialog-actions"><button class="outline-button" id="item-cancel" type="button">Cancel</button><button class="add-button" id="item-submit" type="submit">Add item</button></div></form></dialog>
+    <dialog id="task-view-dialog"><section class="task-view-panel"><div class="dialog-header"><div><p class="eyebrow">Task details</p><h2 id="task-view-name"></h2></div><button class="close-button" id="task-view-close" type="button" aria-label="Close">×</button></div><dl class="task-view-details"><div><dt>Start date</dt><dd id="task-view-start"></dd></div><div><dt>Due date</dt><dd id="task-view-due"></dd></div><div><dt>Repeats</dt><dd id="task-view-days"></dd></div><div><dt>Priority</dt><dd id="task-view-priority"></dd></div><div><dt>Reminder</dt><dd id="task-view-reminder"></dd></div></dl><section class="task-view-description"><h3>Description</h3><p id="task-view-notes"></p></section><div class="dialog-actions"><button class="add-button" id="task-view-done" type="button">Done</button></div></section></dialog>
+    <dialog id="event-view-dialog"><section class="task-view-panel"><div class="dialog-header"><div><p class="eyebrow">Event details</p><h2 id="event-view-name"></h2></div><button class="close-button" id="event-view-close" type="button" aria-label="Close">×</button></div><dl class="task-view-details"><div><dt>Date</dt><dd id="event-view-date"></dd></div><div><dt>Time</dt><dd id="event-view-time"></dd></div><div><dt>Reminder</dt><dd id="event-view-reminder"></dd></div></dl><section class="task-view-description"><h3>Notes</h3><p id="event-view-notes"></p></section><div class="dialog-actions"><button class="add-button" id="event-view-done" type="button">Done</button></div></section></dialog>
     <dialog id="planner-event-dialog"><form id="planner-event-form"><div class="dialog-header"><div><p class="eyebrow">Your planner</p><h2 id="planner-event-title">Add an event</h2></div><button class="close-button" id="planner-event-close" type="button" aria-label="Close">×</button></div><label for="planner-event-name">Event</label><input id="planner-event-name" type="text" maxlength="80" placeholder="e.g. Science fair" required /><div class="event-date-row"><label for="planner-event-date">Date<input id="planner-event-date" type="date" required /></label><label for="planner-event-start">Starts<input id="planner-event-start" type="time" /></label><label for="planner-event-end">Ends<input id="planner-event-end" type="time" /></label></div><label class="event-notes-label" for="planner-event-notes">Notes</label><textarea id="planner-event-notes" maxlength="500" placeholder="Location, materials, or details"></textarea><label class="event-reminder-label" for="planner-event-reminder">Reminder<select id="planner-event-reminder"><option value="0">No notification</option><option value="10">10 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select></label><p class="form-error" id="planner-event-error" role="alert"></p><div class="dialog-actions"><button class="outline-button" id="planner-event-cancel" type="button">Cancel</button><button class="add-button" type="submit">Save event</button></div></form></dialog>
     <dialog id="account-dialog"><form id="account-form"><div class="dialog-header"><div><p class="eyebrow">Your profile</p><h2 id="account-dialog-title">Log in to your account</h2></div><button class="close-button" type="button" onclick="this.closest('dialog').close()" aria-label="Close">×</button></div><label id="account-name-field" for="account-name-input">Username</label><input id="account-name-input" type="text" placeholder="e.g. Alex" maxlength="60" required /><label for="account-email">Email address</label><input id="account-email" type="email" placeholder="you@example.com" required /><label for="account-password">Password</label><div class="password-input-row"><input id="account-password" type="password" minlength="6" placeholder="At least 6 characters" required /><button id="toggle-account-password" class="password-toggle" type="button" aria-controls="account-password" aria-pressed="false">View password</button></div><label class="remember-me hidden" id="remember-me-label" for="remember-me"><input id="remember-me" type="checkbox" /> Remember me</label><p class="form-error" id="account-error" role="alert"></p><button class="account-switch" id="account-switch" type="button">New here? Create an account</button><div class="dialog-actions"><button class="outline-button" type="button" onclick="this.closest('dialog').close()">Cancel</button><button class="add-button" id="account-submit" type="submit">Log in</button></div></form></dialog>
     <dialog id="settings-dialog"><form id="settings-form" class="settings-form"><div class="dialog-header"><div><p class="eyebrow">Your profile</p><h2>Profile settings</h2></div><button class="close-button" type="button" onclick="this.closest('dialog').close()" aria-label="Close">×</button></div><section class="settings-group"><h3>Personal details</h3><label for="settings-name">Name</label><input id="settings-name" type="text" maxlength="60" required /><label for="settings-email">Email address</label><input id="settings-email" type="email" required /><label for="profile-photo">Profile picture</label><input id="profile-photo" type="file" accept="image/*" /></section><section class="settings-group password-section"><h3>Security</h3><p class="settings-note">Change your password by confirming the current one.</p><label for="current-password">Current password</label><input id="current-password" type="password" minlength="6" /><label for="new-password">New password</label><input id="new-password" type="password" minlength="6" /></section><p class="form-error" id="settings-error" role="alert"></p><div class="dialog-actions"><button class="outline-button" type="button" onclick="this.closest('dialog').close()">Cancel</button><button class="add-button" type="submit">Save changes</button></div></form></dialog>
     <dialog id="notifications-dialog"><section class="notification-panel"><div class="dialog-header"><div><p class="eyebrow">Your reminders</p><h2>Notifications</h2></div><button class="close-button" type="button" onclick="this.closest('dialog').close()" aria-label="Close">×</button></div><div id="notification-list" class="notification-list"></div><div class="dialog-actions"><button class="outline-button" id="clear-notifications" type="button">Clear all</button><button class="add-button" type="button" onclick="this.closest('dialog').close()">Done</button></div></section></dialog>
-    <dialog id="assistant-dialog"><form id="assistant-form"><div class="dialog-header"><div><p class="eyebrow">Private on-device helper</p><h2>Ask the school helper</h2></div><button class="close-button" type="button" onclick="this.closest('dialog').close()" aria-label="Close">×</button></div><label class="assistant-permission"><input id="assistant-permission" type="checkbox" /> Let the helper scan my uploaded schedule</label><p class="assistant-privacy">Your schedule is read in this browser only. You can turn access off any time.</p><div class="assistant-prompts"><button type="button" class="prompt-button" data-prompt="What should I prepare today?">Prepare today</button><button type="button" class="prompt-button" data-prompt="What am I forgetting?">Check my list</button><button type="button" class="prompt-button" data-prompt="When is math class?">Search schedule</button><button type="button" class="prompt-button" data-prompt="Add task: Pack art supplies">Add a task</button></div><label for="assistant-input">What do you need?</label><input id="assistant-input" type="text" placeholder="e.g. When is math class?" maxlength="120" required /><div id="assistant-response" class="assistant-response" role="status"></div><div class="dialog-actions"><button class="outline-button" type="button" onclick="this.closest('dialog').close()">Done</button><button class="add-button" type="submit">Ask</button></div></form></dialog>
-    <script type="module" src="app.js?v=20261003-task-colon"></script>
+    <script type="module" src="app.js?v=20261115-task-name-parsing-v4"></script>
   </body>
 </html>
