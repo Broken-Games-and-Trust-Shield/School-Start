@@ -6,7 +6,7 @@ This file is a project blueprint showing how the app is organized across files a
 
 - `index.html` — page structure and dialogs
 - `styles.css` — visual design and layout
-- `app.js` — app logic, state, auth, checklist, planner calendar, events, reminders, schedule management
+- `app.js` — app logic, state, auth, checklist, planner calendar, AI chat and class Key, events, reminders, schedule management
 - `sw.js` — service worker for offline caching and push notifications
 - `manifest.json` — installable PWA metadata
 - `supabase-schema.sql` — PostgreSQL schema and Row Level Security policies
@@ -16,7 +16,7 @@ This file is a project blueprint showing how the app is organized across files a
 
 ## 2) HTML structure (`index.html`)
 
-The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs, and script entry:
+The page loads the app shell, nav tabs, checklist panel, AI planner and class Key, schedule panel, dialogs, and script entry:
 
 ```html
 <!doctype html>
@@ -25,7 +25,7 @@ The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#18382f" />
-    <title>School Start | Accounts + Reminders</title>
+    <title>School Start | AI Planner</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -35,7 +35,9 @@ The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs
         <div class="brand">...</div>
         <nav class="nav-tabs" aria-label="Main navigation">
           <button class="nav-tab active" data-tab="checklist">My checklist</button>
+          <button class="nav-tab" data-tab="chat">AI planner</button>
           <button class="nav-tab" data-tab="schedule">My schedule</button>
+          <button class="nav-tab" data-tab="planner">Planner</button>
         </nav>
         <div class="account-panel">
           <div class="account-avatar" id="account-avatar">?</div>
@@ -57,6 +59,13 @@ The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs
           <div id="empty-state" class="empty-state hidden">...</div>
         </section>
 
+        <section id="chat" class="tab-panel">
+          <div class="chat-workspace">
+            <section id="chat-messages" class="chat-panel">...</section>
+            <aside class="class-key-panel">...</aside>
+          </div>
+        </section>
+
         <section id="schedule" class="tab-panel">
           <header class="page-header schedule-header">...</header>
           <div class="schedule-stage" id="schedule-stage">
@@ -72,7 +81,7 @@ The page loads the app shell, nav tabs, checklist panel, schedule panel, dialogs
     <dialog id="settings-dialog">...</dialog>
     <dialog id="notifications-dialog">...</dialog>
 
-    <script type="module" src="app.js?v=20261003-task-colon"></script>
+    <script type="module" src="app.js?v=20261101-ai-planner-key"></script>
   </body>
 </html>
 ```
@@ -144,7 +153,7 @@ This stylesheet defines the app’s visual identity and responsive behavior.
 
 ## 4) App logic (`app.js`)
 
-This is the heart of the application. It contains state, rendering, authentication, reminders, schedule upload, the permission-gated local planning helper, Month/Week/Day planner views, task date windows and month-week recurrence, planner events, and sync logic. Checklist items keep completion state; planner entries link back to the checklist rather than adding a second completion control.
+This is the heart of the application. It contains state, rendering, authentication, reminders, schedule upload, the permission-gated local planning helper, Month/Week/Day planner views, task date windows and month-week recurrence, planner events, and sync logic. Checklist items keep completion state; planner entries link back to the checklist rather than adding a second completion control. Weekly checkbox state expires, but dated completion history remains available for the consecutive-day streak across week boundaries.
 
 ### Core app state
 
@@ -172,11 +181,12 @@ let notifications = JSON.parse(localStorage.getItem(notificationKey) || '[]');
 ```js
 function render() {
   resetExpiredChecks();
-  const visible = items.filter((item) => item.days.includes(selectedDay));
+  const checklistDate = selectedChecklistDate;
+  const visible = items.filter((item) => taskOccursOnDate(item, checklistDate));
 
   $('#checklist-items').innerHTML = visible.map((item) => `
-    <article class="check-item ${item.doneDays.includes(selectedDay) ? 'done' : ''}">
-      <input class="check-box" type="checkbox" ${item.doneDays.includes(selectedDay) ? 'checked' : ''} data-id="${item.id}" />
+    <article class="check-item ${item.doneDates.includes(checklistDate) ? 'done' : ''}">
+      <input class="check-box" type="checkbox" ${item.doneDates.includes(checklistDate) ? 'checked' : ''} data-id="${item.id}" />
       <span class="item-name">${escapeHtml(item.name)}</span>
       <span class="item-days">${item.days.map(dayLabel).join(' · ')}</span>
       <button class="edit-item" data-edit="${item.id}">✎</button>
@@ -222,7 +232,7 @@ $('#item-form').addEventListener('submit', async (event) => {
       id: Date.now(),
       name,
       days,
-      doneDays: [],
+      doneDates: [],
       reminderDays: reminderTime ? reminderDays : [],
       reminderTime
     });
@@ -300,7 +310,7 @@ function startReminderCheck() {
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const dateKey = now.toLocaleDateString('en-CA');
 
-    items.filter((item) => item.reminderDays.includes(now.getDay()) && item.reminderTime <= time && !item.doneDays.includes(now.getDay()))
+    items.filter((item) => item.reminderDays.includes(now.getDay()) && item.reminderTime <= time && !taskIsDoneOnDate(item, dateKey))
       .forEach((item) => {
         const key = `${item.id}-${dateKey}-${item.reminderTime}`;
         if (notifications.some((notification) => notification.key === key)) return;
@@ -485,5 +495,7 @@ Deno.serve(async () => {
 4. `sw.js` handles offline caching and push notifications.
 5. `supabase-schema.sql` stores user profiles, planner events, and reminder metadata. Apply the `planner_events` column update to existing projects to sync events.
 6. `send-reminders/index.ts` sends checklist and planner-event reminder pushes when their scheduled times arrive.
+
+The AI planner runs locally in the browser. It can read the uploaded schedule after permission is enabled, use the per-profile class Key to prepare supplies, create checklist tasks or planner events, and check off named tasks for a specified date. Task requests can put a name after “called” or “named” (including quoted names) while priority and date are interpreted separately. It ranks schedule-text matches, summarizes upcoming tasks and events as numbered lists, and filters completed tasks from “what is left” requests. The checklist defaults to high-priority, earliest-due-first ordering; users can hold and drag any task row with a mouse (or drag the grip on touch devices), while keyboard users can move tasks with the arrow keys. Chat can also save a requested sort by priority, due date, name, or number. Task completion and custom order are stored with checklist items. The chat also handles greetings, basic date questions, and simple arithmetic; it does not use a remote language model or claim knowledge beyond the saved planner and local schedule.
 
 This is the full project layout, even though the real browser-side logic is primarily in `app.js` plus the supporting files around it.
